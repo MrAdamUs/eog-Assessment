@@ -7,7 +7,58 @@ import CssBaseline from '@material-ui/core/CssBaseline';
 import 'react-toastify/dist/ReactToastify.css';
 import Header from './components/Header';
 import Wrapper from './components/Wrapper';
+import Dashboard from './components/Dashboard';
+import { ApolloClient } from 'apollo-boost';
+import { ApolloProvider } from '@apollo/react-hooks';
+import { InMemoryCache } from 'apollo-cache-inmemory';
+import { HttpLink } from 'apollo-link-http';
+import { ApolloLink } from 'apollo-link';
+import { WebSocketLink } from 'apollo-link-ws';
+import { getMainDefinition } from 'apollo-utilities';
+import { onError } from 'apollo-link-error';
 import NowWhat from './components/NowWhat';
+
+
+
+//websocket link
+const wsLink = new WebSocketLink({
+  uri: 'ws://react.eogresources.com/graphql',
+  options: {
+    //reconnect ws if possible
+    reconnect: true,
+  },
+});
+
+//http request link
+const httpLink = new HttpLink({
+  uri: 'https://react.eogresources.com/graphql',
+});
+
+let link = ApolloLink.from([
+  //error handling
+  onError(({ graphQLErrors, networkError }) => {
+    if (graphQLErrors) {
+      graphQLErrors.map(({ message, locations, path }) =>
+        console.log(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`),
+      );
+    }
+    if (networkError) console.error(`[Network error]: ${networkError}`, networkError.stack);
+  }),
+  ApolloLink.split(
+    // split based on operation type
+    ({ query }) => {
+      const definition = getMainDefinition(query);
+      return definition.kind === 'OperationDefinition' && definition.operation === 'subscription';
+    },
+    wsLink,
+    httpLink,
+  ),
+]);
+
+export const client = new ApolloClient({
+  link,
+  cache: new InMemoryCache(),
+});
 
 const store = createStore();
 const theme = createMuiTheme({
@@ -26,15 +77,18 @@ const theme = createMuiTheme({
 
 const App = () => (
   <MuiThemeProvider theme={theme}>
-    <CssBaseline />
-    <Provider store={store}>
+  <CssBaseline />
+  <Provider store={store}>
+    <ApolloProvider client={client}>
       <Wrapper>
         <Header />
+        <Dashboard />
         <NowWhat />
         <ToastContainer />
       </Wrapper>
-    </Provider>
-  </MuiThemeProvider>
+    </ApolloProvider>
+  </Provider>
+</MuiThemeProvider>
 );
 
 export default App;
