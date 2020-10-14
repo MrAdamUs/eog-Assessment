@@ -27,9 +27,6 @@ export const getInputQuery = (metrics: string[]) => {
   });
 };
 
-
-
-
 // fetch metric Name from API
 const fetchMetrics = async () => {
   const res = await client.query({
@@ -42,7 +39,6 @@ const fetchMetrics = async () => {
 
 const fetchData = async (metrics: string[]) => {
   const res = await client.query({
-   
     query: gql`
       ${getData(getInputQuery(metrics))}
     `,
@@ -146,7 +142,6 @@ export default () => {
         initialLatestData.push({metric: metric, at: 0, value: 0, unit: ""})
       })
       setLatestData(initialLatestData);
-
       setInitialData(transformedData);
       // console.log(getInputQuery(metricsReseult));
     };
